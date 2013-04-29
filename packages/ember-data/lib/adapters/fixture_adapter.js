@@ -119,12 +119,16 @@ DS.FixtureAdapter = DS.Adapter.extend({
 
   findAll: function(store, type) {
     var fixtures = this.fixturesForType(type);
+    return new Promise(function(resolve) {
+      if (!fixtures) {
+        // throwing an exception should cause the promise to reject
+        Ember.assert("Unable to find fixtures for model type "+type.toString());
+      }
+      this.simulateRemoteCall(function() {
+        this.didFindAll(store, type, fixtures);
+      }, this);
+    });
 
-    Ember.assert("Unable to find fixtures for model type "+type.toString(), !!fixtures);
-
-    this.simulateRemoteCall(function() {
-      this.didFindAll(store, type, fixtures);
-    }, this);
   },
 
   findQuery: function(store, type, query, array) {
@@ -144,31 +148,42 @@ DS.FixtureAdapter = DS.Adapter.extend({
   createRecord: function(store, type, record) {
     var fixture = this.mockJSON(type, record);
 
-    this.updateFixtures(type, fixture);
+    return new Promise(function(resolve) {
+      this.updateFixtures(type, fixture);
 
-    this.simulateRemoteCall(function() {
-      this.didCreateRecord(store, type, record, fixture);
-    }, this);
+      this.simulateRemoteCall(function() {
+        this.didCreateRecord(store, type, record, fixture);
+        resolve(fixture);
+      }, this);
+    });
+
   },
 
   updateRecord: function(store, type, record) {
     var fixture = this.mockJSON(type, record);
 
-    this.updateFixtures(type, fixture);
+    return new Promise(function(resolve) {
+      this.updateFixtures(type, fixture);
 
-    this.simulateRemoteCall(function() {
-      this.didUpdateRecord(store, type, record, fixture);
-    }, this);
+      this.simulateRemoteCall(function() {
+        this.didUpdateRecord(store, type, record, fixture);
+        resolve(fixture);
+      }, this);
+    });
+
   },
 
   deleteRecord: function(store, type, record) {
     var fixture = this.mockJSON(type, record);
 
-    this.deleteLoadedFixture(type, fixture);
+    return new Promise(function(resolve) {
+      this.deleteLoadedFixture(type, fixture);
 
-    this.simulateRemoteCall(function() {
-      this.didDeleteRecord(store, type, record);
-    }, this);
+      this.simulateRemoteCall(function() {
+        this.didDeleteRecord(store, type, record);
+        resolve();
+      }, this);
+  });
   },
 
   /*
