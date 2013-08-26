@@ -692,16 +692,25 @@ DS.Store = Ember.Object.extend(DS._Mappable, {
     //    convert them back to ids)
 
     if (!Ember.isArray(idsOrReferencesOrOpaque)) {
-      var adapter = this.adapterForType(type);
+       var defaultProps = {};
+      // If the record is new we already know
+      // the many array is empty so no need
+      // to call `adapter.findHasMany`
+      if (!get(record, 'isNew')) {
 
-      if (adapter && adapter.findHasMany) {
-        adapter.findHasMany(this, record, relationship, idsOrReferencesOrOpaque);
-      } else if (!isNone(idsOrReferencesOrOpaque)) {
-        Ember.assert("You tried to load many records but you have no adapter (for " + type + ")", adapter);
-        Ember.assert("You tried to load many records but your adapter does not implement `findHasMany`", adapter.findHasMany);
+        var adapter = this.adapterForType(type);
+
+        if (adapter && adapter.findHasMany) {
+          adapter.findHasMany(this, record, relationship, idsOrReferencesOrOpaque);
+        } else if (!isNone(idsOrReferencesOrOpaque)) {
+          Ember.assert("You tried to load many records but you have no adapter (for " + type + ")", adapter);
+          Ember.assert("You tried to load many records but your adapter does not implement `findHasMany`", adapter.findHasMany);
+        }
+      } else {
+        defaultProps = { isLoaded: true };
       }
 
-      return this.recordArrayManager.createManyArray(type, Ember.A());
+      return this.recordArrayManager.createManyArray(type, Ember.A(), defaultProps);
     }
 
     // Coerce server IDs into Record Reference

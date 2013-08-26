@@ -164,12 +164,12 @@ DS.RecordArrayManager = Ember.Object.extend({
     @param {Array} references
     @return {DS.ManyArray}
   */
-  createManyArray: function(type, references) {
-    var manyArray = DS.ManyArray.create({
-      type: type,
-      content: references,
-      store: this.store
-    });
+  createManyArray: function(type, references, props) {
+    props = props || {};
+    props.type = type;
+    props.content = references;
+    props.store = this.store;
+    var manyArray = DS.ManyArray.create(props);
 
     forEach(references, function(reference) {
       var arrays = this.recordArraysForReference(reference);

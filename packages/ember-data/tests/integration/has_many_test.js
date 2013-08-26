@@ -292,3 +292,26 @@ test("A record can be found after loading its id through a hasMany relationship"
   var post = store.find(App.Post, 1);
   var comment = store.find(App.Comment, 2);
 });
+
+test("When a record is created on the client, its hasMany arrays should have isLoaded flag", function() {
+  expect(4);
+
+  var post;
+
+  Ember.run(function() {
+    post = App.Post.createRecord();
+  });
+
+  ok(get(post, 'isLoaded'), "The post should have isLoaded flag");
+
+  var comments = get(post, 'comments');
+
+  equal(get(comments, 'length'), 0, "The comments should be an empty array");
+
+  ok(get(comments, 'isLoaded'), "The comments should have isLoaded flag");
+
+  comments.then(function(records) {
+    ok(true, "Comments array successfully resolves");
+  });
+
+});
