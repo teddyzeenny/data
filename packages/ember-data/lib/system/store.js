@@ -594,7 +594,6 @@ Store = Service.extend({
 
     Ember.assert("You tried to find a record but you have no adapter (for " + typeClass + ")", adapter);
     Ember.assert("You tried to find a record but your adapter (for " + typeClass + ") does not implement 'findRecord'", typeof adapter.findRecord === 'function' || typeof adapter.find === 'function');
-
     var promise = _find(adapter, this, typeClass, id, internalModel, options);
     return promise;
   },

@@ -12,12 +12,26 @@ import {
   serializerForAdapter
 } from "ember-data/system/store/serializers";
 
+import {
+  instrumentStart
+} from 'ember-data/system/debug/instrumentation';
+
+const {
+  generateGuid
+} = Ember;
+
 var Promise = Ember.RSVP.Promise;
 
 export function _find(adapter, store, typeClass, id, internalModel, options) {
   var snapshot = internalModel.createSnapshot(options);
-  var promise = adapter.findRecord(store, typeClass, id, snapshot);
+  let operationId = generateGuid();
+  let instrumentEnd = instrumentStart('store.operation.find', () => {
+    return { adapter, store, typeClass, id, snapshot, operationId };
+  });
   var serializer = serializerForAdapter(store, adapter, internalModel.type.modelName);
+  adapter.set('operationId', operationId);
+  var promise = adapter.findRecord(store, typeClass, id, snapshot);
+  adapter.set('operationId', null);
   var label = "DS: Handle Adapter#find of " + typeClass + " with id: " + id;
 
   promise = Promise.resolve(promise, label);
@@ -26,9 +40,14 @@ export function _find(adapter, store, typeClass, id, internalModel, options) {
   return promise.then(function(adapterPayload) {
     Ember.assert("You made a request for a " + typeClass.typeClassKey + " with id " + id + ", but the adapter's response did not have any data", adapterPayload);
     return store._adapterRun(function() {
+      serializer.set('operationId', operationId);
       var payload = normalizeResponseHelper(serializer, store, typeClass, adapterPayload, id, 'findRecord');
+      serializer.set('operationId', null);
       //TODO Optimize
       var record = store.push(payload);
+      if (instrumentEnd) {
+        instrumentEnd({ record, payload, success: true, operationId });
+      }
       return record._internalModel;
     });
   }, function(error) {
@@ -36,7 +55,9 @@ export function _find(adapter, store, typeClass, id, internalModel, options) {
     if (internalModel.isEmpty()) {
       internalModel.unloadRecord();
     }
-
+    if (instrumentEnd) {
+      instrumentEnd({ success: false, operationId});
+    }
     throw error;
   }, "DS: Extract payload of '" + typeClass + "'");
 }
